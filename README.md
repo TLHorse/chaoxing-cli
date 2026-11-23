@@ -1,5 +1,7 @@
 # chaoxing-cli
 
+<img src="assets/chaoxing-cli.png" width="96" height="96" alt="chaoxing-cli 项目图标">
+
 通过自己的学习通学生会话查询课程和作业。可从终端使用 `chaoxing-cli`，也可在 Python 程序中导入 `chaoxing`。本项目使用学习通网页接口。
 
 | 文档 | 内容 |

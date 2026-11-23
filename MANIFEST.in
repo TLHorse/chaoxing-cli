@@ -1,1 +1,2 @@
 include docs/cli.md docs/python-api.md
+include assets/chaoxing-cli.png
