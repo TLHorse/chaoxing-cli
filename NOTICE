@@ -1,0 +1,20 @@
+chaoxing-cli 及同一发行包中的 chaoxing Python 库采用 GNU General Public License
+version 3 only（SPDX 标识 GPL-3.0-only）。许可证全文见 LICENSE。
+
+上游来源
+Samueli924/chaoxing 项目及其贡献者
+https://github.com/Samueli924/chaoxing
+本项目参考的 TLHorse/chaoxing 版本
+https://github.com/TLHorse/chaoxing/tree/be3a5bc4455eb2cc6ed1d21e5ecba4d954b77ab7
+
+修改说明（2026-11-23）
+本项目基于上述版本中的登录表单、凭据加密及课程访问流程，改写了会话管理、
+查询和章节作业提交逻辑，并提供独立的命令行入口和可导入的 Python 客户端。
+具体接口的来源见 README.md 中的研究记录。上游贡献者保有其代码的版权。
+
+上游 README 还载有仅用于学习讨论、禁止盈利的声明，原文见下方链接。
+这一表述与标准 GPLv3 允许收费分发的条文存在冲突。涉及商业分发时，
+可向相关上游权利人确认其授权。随附 LICENSE 为标准 GPLv3 全文。
+https://github.com/TLHorse/chaoxing/blob/be3a5bc4455eb2cc6ed1d21e5ecba4d954b77ab7/README.md#warning-免责声明
+
+本软件按 GPLv3 第 15、16 条所述条件提供，在适用法律允许范围内不提供担保。
