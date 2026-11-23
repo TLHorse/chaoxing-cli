@@ -37,6 +37,49 @@ chaoxing-cli discussions '从课程讨论页网络面板复制的完整HTTPS列�
 
 work 使用任务卡中该作业的 jobid、页面签发的 ktoken 和 enc。各课程版本的 DOM 有变化，章节或考试解析不到条目时返回正文和可发现的链接。讨论入口可能需要课程签名，网页若用 JavaScript 加载正文，应提供实际列表请求地址。资料子目录参数可从浏览器打开文件夹时的请求取得。
 
+## 在 Python 应用中使用
+
+在 Agent 或 Web 后端的虚拟环境里运行 `python -m pip install /Users/matianlai/Developer/chaoxing-cli`，或在本仓库中运行 `python -m pip install -e .`。安装名为 `chaoxing-cli`，Python 导入名为 `chaoxing`。
+
+本机已经用 CLI 登录时，可以加载同一份会话。方法直接返回 Python 列表或字典。
+
+```python
+from chaoxing import ChaoxingClient
+
+with ChaoxingClient.from_cookies() as client:
+    for course in client.list_courses():
+        chapters = client.list_chapters(course["course"], course["clazz"], course["cpi"])
+        assignments = client.list_assignments(course["course"], course["clazz"], course["cpi"])
+        print(course["title"], chapters, assignments)
+```
+
+Web 后端可以自己接收账号密码，按用户创建独立客户端。下面的调用只在内存中保留当前会话。需要持久化时，向 `login` 传入该用户专属的 `cookie_path`，以后用 `from_cookies(path)` 加载。所有请求均为同步调用，异步 Web 框架可在线程池中执行。
+
+```python
+from chaoxing import ChaoxingClient
+
+def courses_for_user(username: str, password: str):
+    with ChaoxingClient() as client:
+        client.login(username, password)
+        return client.list_courses()
+```
+
+| CLI 命令 | Python 接口 | 返回内容 |
+| --- | --- | --- |
+| login | `client.login(username, password, cookie_path=...)` | 登录后直接使用该客户端，可省略保存路径 |
+| space / detail / discussions | `client.get_space()`、`client.get_detail(url)`、`client.list_discussions(url)` | 页面正文和链接 |
+| courses | `client.list_courses()` | 含 title、course、clazz、cpi、folder 的课程列表 |
+| chapters | `client.list_chapters(course, clazz, cpi)` | 章节列表，未解析到条目时返回页面正文和链接 |
+| assignments | `client.list_assignments(course, clazz, cpi)` | 作业列表页正文和详情链接 |
+| tasks | `client.get_tasks(course, clazz, cpi, chapter, card=0)` | 任务卡字典，或页面正文和链接 |
+| work | `client.get_work(course, clazz, cpi, chapter, job, ktoken, enc)` | 章节作业页正文和链接 |
+| resources | `client.list_resources(course, clazz, cpi)` | 资料页正文和链接，子目录可传 folder 和 enc |
+| exams / activities | `client.list_exams()`、`client.list_activities(course, clazz, fid)` | 考试表格行（或页面正文和链接）、活动列表 |
+| submit | `preview_submission(form)`、`client.submit_assignment(form)` | 离线预览或实际发送一次；form 是 URL 编码的表单字符串 |
+| har | `har_inventory(path)` | 本地 HAR 请求统计 |
+
+`preview_submission`、`har_inventory` 和异常类型均可从 `chaoxing` 导入。遇到会话缺失、过期或服务端拒绝登录时，可捕获 `AuthenticationError`（继承自 `ChaoxingError`）。其他平台拒绝可捕获 `ChaoxingError`，网络连接或超时等异常由 `requests.RequestException` 表示。页面正文和链接的结构为 `{"text": "...", "links": [{"title": "...", "url": "..."}]}`。
+
 ## 章节作业提交
 
 支持原项目使用的 POST /mooc-ans/work/addStudentWorkNew。该命令接收自己填写的完整 URL 编码表单，保留重复字段、空字段和题目顺序。可在浏览器开发者工具 Network 的对应请求中查看 Payload 的原始编码，或按同版本页面的隐藏字段和自己的答案构造表单。已经成功提交的请求请勿重复发送。
