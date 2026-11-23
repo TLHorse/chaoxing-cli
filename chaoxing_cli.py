@@ -1,4 +1,7 @@
 import argparse
+import base64
+import getpass
+import tempfile
 import json
 import os
 import re
@@ -21,6 +24,50 @@ EXAMS = "https://mooc1-api.chaoxing.com/exam-ans/exam/test/examcode/examlist"
 ACTIVE = "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist"
 
 
+DEFAULT_COOKIES = Path.home() / ".config" / "chaoxing-cli" / "cookies.txt"
+
+
+def encrypt_login(value):
+    import pyaes
+
+    key = b"u2oh6Vu^HWe4_AES"
+    encoder = pyaes.Encrypter(pyaes.AESModeOfOperationCBC(key, iv=key))
+    data = encoder.feed(value.encode("utf-8")) + encoder.feed()
+    return base64.b64encode(data).decode("ascii")
+
+
+def login(cookies):
+    username = input("学习通账号：").strip()
+    password = getpass.getpass("学习通密码：")
+    if not username or not password:
+        raise ValueError("请输入账号和密码")
+    form = dict(fid="-1", uname=encrypt_login(username), password=encrypt_login(password),
+                refer="https%3A%2F%2Fi.chaoxing.com", t=True, forbidotherlogin=0,
+                validate="", doubleFactorLogin=0, independentId=0)
+    path = Path(cookies).expanduser()
+    jar = MozillaCookieJar()
+    with requests.Session() as session:
+        session.cookies = jar
+        response = session.post("https://passport2.chaoxing.com/fanyalogin", data=form,
+                                timeout=(8, 25), allow_redirects=False)
+        response.raise_for_status()
+        result = response.json()
+        if not isinstance(result, dict) or result.get("status") is not True:
+            reason = result.get("msg2") or result.get("msg") if isinstance(result, dict) else None
+            raise ValueError(reason or "登录未成功，请核对账号或查看网页登录提示")
+        if not len(jar):
+            raise ValueError("服务器未返回会话 Cookie")
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as tmp:
+        temp_path = Path(tmp.name)
+    try:
+        jar.save(str(temp_path), ignore_discard=True)
+        os.replace(temp_path, path)
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return {"message": "登录成功", "cookies": str(path)}
+
+
 def checked(url):
     parts = urlsplit(url)
     host = parts.hostname or ""
@@ -32,9 +79,9 @@ def checked(url):
 
 class Client:
     def __init__(self, cookies):
-        if not cookies:
-            raise ValueError("请通过 --cookies 或 CHAOXING_COOKIES 指定 Netscape Cookie 文件")
-        jar = MozillaCookieJar(cookies)
+        if not Path(cookies).expanduser().is_file():
+            raise ValueError("请先运行 chaoxing-cli login，或通过 --cookies 指定已有 Cookie 文件")
+        jar = MozillaCookieJar(str(Path(cookies).expanduser()))
         jar.load(ignore_discard=True)
         self.session = requests.Session()
         self.session.cookies = jar
@@ -43,7 +90,7 @@ class Client:
         for _ in range(8):
             checked(url)
             if (urlsplit(url).hostname or "").startswith("passport"):
-                raise ValueError("会话已失效，请重新导出登录 Cookie")
+                raise ValueError("会话已失效，请重新运行 chaoxing-cli login")
             response = self.session.request("POST" if data is not None else "GET", url,
                                             params=params, data=data, headers=headers,
                                             timeout=(8, 25), allow_redirects=False)
@@ -58,7 +105,7 @@ class Client:
             if "charset=" not in response.headers.get("Content-Type", "").lower():
                 response.encoding = "utf-8"
             if 'type="password"' in response.text or 'id="formLogin"' in response.text:
-                raise ValueError("返回了登录页，请更新 Cookie")
+                raise ValueError("返回了登录页，请重新运行 chaoxing-cli login")
             return response
         raise ValueError("页面重定向次数过多")
 
@@ -97,6 +144,8 @@ def har_inventory(path):
 
 
 def run(a):
+    if a.command == "login":
+        return login(a.cookies)
     if a.command == "har":
         return har_inventory(a.file)
     if a.command == "submit":
@@ -179,9 +228,9 @@ def run(a):
 
 def main():
     p = argparse.ArgumentParser(description="学习通个人空间 API 研究客户端")
-    p.add_argument("--cookies", default=os.environ.get("CHAOXING_COOKIES"), help="Netscape Cookie 文件")
+    p.add_argument("--cookies", default=os.environ.get("CHAOXING_COOKIES") or DEFAULT_COOKIES, help="Netscape Cookie 文件")
     sub = p.add_subparsers(dest="command", required=True)
-    for name, desc in {"space":"个人空间菜单", "courses":"课程及文件夹", "exams":"考试列表",
+    for name, desc in {"login":"账号密码登录并保存会话", "space":"个人空间菜单", "courses":"课程及文件夹", "exams":"考试列表",
                        "chapters":"章节", "assignments":"课程作业", "resources":"课程资料",
                        "tasks":"章节任务卡", "work":"读取章节作业", "activities":"课堂活动", "discussions":"读取讨论列表页",
                        "detail":"读取详情页", "har":"离线归纳浏览器 HAR", "submit":"章节作业提交"}.items():
@@ -213,7 +262,7 @@ def main():
     except requests.RequestException as exc:
         print(f"网络或响应错误（{type(exc).__name__}）", file=sys.stderr)
         return 1
-    except (OSError, ValueError, KeyError) as exc:
+    except (OSError, ValueError, KeyError, EOFError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
     return 0

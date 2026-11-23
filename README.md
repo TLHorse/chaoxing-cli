@@ -12,12 +12,11 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-在浏览器登录学习通后，将自己账号的超星域名 Cookie 导出为 Netscape cookies.txt 格式，保留域名、路径、过期时间和 HttpOnly 行。请将文件保存在本机私有目录。Cookie、含签名的 URL、作业表单和 HAR 都可能含有个人数据。
+在终端运行以下命令，按提示输入学习通账号和密码。密码输入时不会回显。CLI 仅保存登录返回的 Cookie，默认文件为 `~/.config/chaoxing-cli/cookies.txt`，权限为 0600。会话过期后再次运行 login。若指定全局参数 `--cookies` 或环境变量 `CHAOXING_COOKIES`，登录和读取都会使用指定文件。需要学校单点登录或额外验证的账号仍可导入浏览器导出的 Netscape Cookie。
 
 ```sh
 source .venv/bin/activate
-export CHAOXING_COOKIES="$HOME/.config/chaoxing/cookies.txt"
-chaoxing-cli space
+chaoxing-cli login
 chaoxing-cli courses
 chaoxing-cli exams
 ```
