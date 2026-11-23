@@ -2,6 +2,11 @@
 
 <img src="assets/chaoxing-icon.png" width="96" height="96" alt="chaoxing-cli 项目图标">
 
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](pyproject.toml)
+[![GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-B80E36?style=flat-square)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/TLHorse/chaoxing-cli?style=flat-square&logo=github)](https://github.com/TLHorse/chaoxing-cli/stargazers)
+[![Open Issues](https://img.shields.io/github/issues/TLHorse/chaoxing-cli?style=flat-square)](https://github.com/TLHorse/chaoxing-cli/issues)
+
 通过自己的学习通学生会话查询课程和作业。可从终端使用 `chaoxing-cli`，也可在 Python 程序中导入 `chaoxing`。本项目使用学习通网页接口。
 
 | 文档 | 内容 |
